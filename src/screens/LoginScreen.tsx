@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 const LoginScreen = ({ navigation }: any) => {
   const handleNav = () => {
-    navigation.navigate('Home');
+    navigation.navigate('SignIn');
   };
 
   return (
