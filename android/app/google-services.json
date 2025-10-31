@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "380494011217",
+    "project_id": "pallet-39d90",
+    "storage_bucket": "pallet-39d90.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:380494011217:android:a9d26f33e72d75cf7f5170",
+        "android_client_info": {
+          "package_name": "com.pallet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEkJ9EErypuWNIMD0qdhLXGyZpcGUb1a4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:380494011217:android:fa01eb3c0950b2447f5170",
+        "android_client_info": {
+          "package_name": "com.palletassignment"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEkJ9EErypuWNIMD0qdhLXGyZpcGUb1a4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
