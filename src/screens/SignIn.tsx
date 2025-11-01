@@ -70,7 +70,7 @@ const SignIn = ({ navigation }: any) => {
           onPress={signIn}
         />
       ) : (
-        <ProductsScreen/>
+        <Button title="Go to Products" onPress={() => navigation.navigate('Products')} />
       )}
     </View>
   );
