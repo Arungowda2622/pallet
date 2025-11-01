@@ -8,10 +8,9 @@ import {
   Dimensions,
   TouchableOpacity,
   TextInput,
-  RefreshControl
+  RefreshControl,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import Icon from 'react-native-vector-icons/Ionicons';
 
 const { width } = Dimensions.get('window');
 const ITEM_MARGIN = 8;
@@ -22,10 +21,10 @@ interface Product {
   id: string | number;
   name: string;
   price?: number | string;
+  description?: string;
   variants?: { images?: string[] | string }[];
 }
 
-// Define types for cart and wishlist items (can be same as Product)
 type CartItem = Product;
 type WishlistItem = Product;
 
@@ -39,6 +38,7 @@ const ProductsScreen = ({ navigation }: any) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+
   // 🕒 Debounce search
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -52,82 +52,92 @@ const ProductsScreen = ({ navigation }: any) => {
     fetchData();
   }, [page]);
 
-const fetchData = async (reset = false) => {
-  try {
-    if (reset) setLoading(true);
+  const fetchData = async (reset = false) => {
+    try {
+      if (reset) setLoading(true);
 
-    // 🧩 Static mock data (example)
-    const data = {
-      data: {
-        totalRecords: 3,
-        totalPages: 1,
-        data: [
-          {
-            productId: '101',
-            name: 'Apple iPhone 15 Pro',
-            price: '1299',
-            description: 'Latest iPhone with A17 Pro chip and titanium body.',
-            variants: [
-              {
-                variantId: 'v101',
-                barcodes: ['5555500000012'],
-                images: [
-                  'https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-blue-titanium',
-                  'https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/iphone-15-pro-gallery-2-202309'
-                ]
-              }
-            ]
-          },
-          {
-            productId: '102',
-            name: 'Samsung Galaxy S24 Ultra',
-            price: '1199',
-            description: 'Flagship Galaxy phone with AI-powered camera and S-Pen support.',
-            variants: [
-              {
-                variantId: 'v102',
-                barcodes: ['5555500000023'],
-                images: [
-                  'https://images.samsung.com/is/image/samsung/p6pim/levant/galaxy-s24-ultra-highlights-kv-mo-img',
-                  'https://images.samsung.com/is/image/samsung/p6pim/levant/galaxy-s24-ultra-design-1-img'
-                ]
-              }
-            ]
-          },
-          {
-            productId: '103',
-            name: 'Sony WH-1000XM5 Headphones',
-            price: '399',
-            description: 'Industry-leading noise cancellation wireless headphones.',
-            variants: [
-              {
-                variantId: 'v103',
-                barcodes: ['5555500000034'],
-                images: [
-                  'https://m.media-amazon.com/images/I/61+d5Fz6a4L._AC_SL1500_.jpg',
-                  'https://m.media-amazon.com/images/I/61vL3oJr8bL._AC_SL1500_.jpg'
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    };
+      // Mock Data
+      const data = {
+        data: {
+          totalRecords: 3,
+          totalPages: 1,
+          data: [
+            {
+              id: '101',
+              name: 'Apple iPhone 15 Pro',
+              price: '1299',
+              description: 'Latest iPhone with A17 Pro chip and titanium body.',
+              variants: [
+                {
+                  images: [
+                    'https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-blue-titanium',
+                    'https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/iphone-15-pro-gallery-2-202309',
+                  ],
+                   barcodes: "5555500000012",
+                },
+              ],
+            },
+            {
+              id: '102',
+              name: 'Samsung Galaxy S24 Ultra',
+              price: '1199',
+              description: 'Flagship Galaxy phone with AI-powered camera and S-Pen support.',
+              variants: [
+                {
+                  images: [
+                    'https://images.samsung.com/is/image/samsung/p6pim/levant/galaxy-s24-ultra-highlights-kv-mo-img',
+                    'https://images.samsung.com/is/image/samsung/p6pim/levant/galaxy-s24-ultra-design-1-img',
+                  ],
+                   barcodes: "5555500000012",
+                },
+              ],
+            },
+            {
+              id: '103',
+              name: 'Sony WH-1000XM5 Headphones',
+              price: '399',
+              description: 'Industry-leading noise cancellation wireless headphones.',
+              variants: [
+                {
+                  images: [
+                    'https://m.media-amazon.com/images/I/61+d5Fz6a4L._AC_SL1500_.jpg',
+                    'https://m.media-amazon.com/images/I/61vL3oJr8bL._AC_SL1500_.jpg',
+                  ],
+                  barcodes: "5555500000012",
+                },
+              ],
+            },
+            {
+              id: '104',
+              name: 'Sony  Headphones',
+              price: '599',
+              description: 'Industry-leading noise cancellation wireless headphones.',
+              variants: [
+                {
+                  images: [
+                    'https://m.media-amazon.com/images/I/61+d5Fz6a4L._AC_SL1500_.jpg',
+                    'https://m.media-amazon.com/images/I/61vL3oJr8bL._AC_SL1500_.jpg',
+                  ],
+                  barcodes: "5555500000012",
+                },
+              ],
+            },
+          ],
+        },
+      };
 
-    const newProducts = data?.data?.data || [];
-    console.log('Static product data:', newProducts);
-
-    setTotalPages(data?.data?.totalPages || 1);
-    setProducts(reset ? newProducts : [...products, ...newProducts]);
-  } catch (err) {
-    console.error('Fetch error:', err);
-    setError('Failed to load products.');
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-};
-
+      const newProducts = data.data.data || [];
+      setTotalPages(data.data.totalPages || 1);
+      setProducts(reset ? newProducts : [...products, ...newProducts]);
+      setError(null);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Failed to load products.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -141,7 +151,7 @@ const fetchData = async (reset = false) => {
     }
   };
 
-  const toggleCart = item => {
+  const toggleCart = (item: Product) => {
     setCart(prev =>
       prev.some(p => p.id === item.id)
         ? prev.filter(p => p.id !== item.id)
@@ -149,7 +159,7 @@ const fetchData = async (reset = false) => {
     );
   };
 
-  const toggleWishlist = item => {
+  const toggleWishlist = (item: Product) => {
     setWishlist(prev =>
       prev.some(p => p.id === item.id)
         ? prev.filter(p => p.id !== item.id)
@@ -157,33 +167,28 @@ const fetchData = async (reset = false) => {
     );
   };
 
-  const handleClick = (item: any) => {
-  console.log("clicking", item);
-  console.log("clickingnavigation", navigation);
-
-  navigation.navigate('ProductDetails', { product: item });
-};
-
+  const handleClick = (item: Product) => {
+    navigation.navigate('ProductDetails', { product: item });
+  };
 
   const renderItem = useCallback(
-    ({ item }) => {
+    ({ item }: { item: Product }) => {
       const inCart = cart.some(p => p.id === item.id);
       const inWishlist = wishlist.some(p => p.id === item.id);
 
       const imageUri =
         Array.isArray(item?.variants?.[0]?.images)
-          ? item?.variants?.[0]?.images?.[0]
+          ? item.variants?.[0]?.images?.[0]
           : item?.variants?.[0]?.images;
 
       return (
-        <TouchableOpacity onPress={() => handleClick(item)} style={styles.card} activeOpacity={0.8}>
+        <TouchableOpacity
+          onPress={() => handleClick(item)}
+          style={styles.card}
+          activeOpacity={0.8}>
           <FastImage
             style={styles.image}
-            source={
-              imageUri
-                ? { uri: imageUri, priority: FastImage.priority.normal }
-                : require('../../assets/placeholderImage.png')
-            }
+            source={require('../../assets/placeholderImage.png')}
             resizeMode={FastImage.resizeMode.cover}
           />
 
@@ -194,18 +199,26 @@ const fetchData = async (reset = false) => {
 
           <View style={styles.actions}>
             <TouchableOpacity onPress={() => toggleCart(item)}>
-              <Icon
-                name={inCart ? 'cart' : 'cart-outline'}
-                size={22}
-                color={inCart ? '#007AFF' : '#777'}
+              <FastImage
+                source={
+                  inCart
+                    ? require('../../assets/cart-filled.jpeg')
+                    : require('../../assets/cart-outline.jpg')
+                }
+                style={styles.iconImage}
+                resizeMode={FastImage.resizeMode.contain}
               />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => toggleWishlist(item)}>
-              <Icon
-                name={inWishlist ? 'heart' : 'heart-outline'}
-                size={22}
-                color={inWishlist ? 'red' : '#777'}
+              <FastImage
+                source={
+                  inWishlist
+                    ? require('../../assets/heart-filled.png')
+                    : require('../../assets/heart-outline.png')
+                }
+                style={styles.iconImage}
+                resizeMode={FastImage.resizeMode.contain}
               />
             </TouchableOpacity>
           </View>
@@ -285,8 +298,14 @@ const fetchData = async (reset = false) => {
 
       {/* 🛒 Floating Cart Button */}
       {cart.length > 0 && (
-        <TouchableOpacity style={styles.cartButton}>
-          <Icon name="cart" size={28} color="#fff" />
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => navigation.navigate("CartScreen",{ cart })}>
+          <FastImage
+            source={require('../../assets/cart-filled.jpeg')}
+            style={styles.cartIcon}
+            resizeMode={FastImage.resizeMode.contain}
+          />
           <View style={styles.cartBadge}>
             <Text style={styles.cartBadgeText}>{cart.length}</Text>
           </View>
@@ -299,7 +318,7 @@ const fetchData = async (reset = false) => {
 export default ProductsScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', marginTop: 30 },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 10, paddingBottom: 100 },
   card: {
@@ -336,7 +355,7 @@ const styles = StyleSheet.create({
   },
   cartButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 60,
     right: 20,
     backgroundColor: '#007AFF',
     padding: 14,
@@ -362,4 +381,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
+  iconImage: { width: 24, height: 24 },
+  cartIcon: { width: 28, height: 28, tintColor: '#fff' },
 });

@@ -11,6 +11,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import SignIn from './src/screens/SignIn';
 import ProductsScreen from './src/screens/ProductsScreen';
 import ProductDetails from './src/screens/ProductDetails';
+import CartScreen from './src/screens/CartScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ function App() {
             <Stack.Screen name="SignIn" component={SignIn} />
             <Stack.Screen name="Products" component={ProductsScreen} />
             <Stack.Screen name="ProductDetails" component={ProductDetails} />
+            <Stack.Screen name="CartScreen" component={CartScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
