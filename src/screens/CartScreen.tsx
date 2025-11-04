@@ -122,11 +122,6 @@ export default function CartScreen({ navigation }: any) {
             contentContainerStyle={{ paddingBottom: 160 }}
           />
 
-          {/* ✅ Barcode Scanner Button */}
-          <TouchableOpacity style={styles.scanButton} onPress={handleScanBarcode}>
-            <Text style={styles.scanButtonText}>Scan Barcode</Text>
-          </TouchableOpacity>
-
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>

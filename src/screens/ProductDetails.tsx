@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { saveCart, loadCart } from '../utils/storage';
 
 const { width } = Dimensions.get('window');
 
@@ -27,10 +28,15 @@ const ProductDetails = () => {
       ? product.variants[0].images
       : ['https://via.placeholder.com/400'];
 
-      useEffect(()=>{
-        console.log(product,"product");
-        
-      },[])
+  useEffect(() => {
+    console.log('🧾 Product:', product);
+    // check if already in cart
+    (async () => {
+      const existingCart = await loadCart();
+      const exists = existingCart.some(item => item.id === product.id);
+      setInCart(exists);
+    })();
+  }, []);
 
   const handleShare = async () => {
     try {
@@ -42,18 +48,34 @@ const ProductDetails = () => {
     }
   };
 
-  const handleAddToCart = () => {
-    setInCart(true);
-    console.log('Added to cart:', { ...product, quantity });
-  };
+  const handleAddToCart = async () => {
+    try {
+      const existingCart = await loadCart();
 
-  const increaseQty = () => setQuantity(prev => prev + 1);
-  const decreaseQty = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+      const productExists = existingCart.some(item => item.id === product.id);
+
+      let updatedCart;
+      if (productExists) {
+        updatedCart = existingCart.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
+      } else {
+        updatedCart = [...existingCart, { ...product, quantity }];
+      }
+
+      await saveCart(updatedCart);
+      setInCart(true);
+      console.log('✅ Added to cart:', { ...product, quantity });
+    } catch (error) {
+      console.error('❌ Error adding to cart:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* 🖼️ Image Carousel */}
         <FlatList
           data={images}
           horizontal
@@ -62,14 +84,17 @@ const ProductDetails = () => {
           keyExtractor={(_, index) => index.toString()}
           renderItem={({ item }) => (
             <FastImage
-              source={require('../../assets/placeholderImage.png')}
+              source={
+                item
+                  ? { uri: item }
+                  : require('../../assets/placeholderImage.png')
+              }
               style={styles.image}
-              resizeMode={FastImage.resizeMode.stretch}
+              resizeMode={FastImage.resizeMode.cover}
             />
           )}
         />
 
-        {/* ℹ️ Product Info */}
         <View style={styles.infoContainer}>
           <Text style={styles.name}>{product.name}</Text>
           <Text style={styles.price}>₹{product.price ?? '—'}</Text>
@@ -77,7 +102,6 @@ const ProductDetails = () => {
             {product.description ?? 'No description available.'}
           </Text>
 
-          {/* 📋 Example Specs */}
           <View style={styles.specs}>
             <Text style={styles.specTitle}>Specifications:</Text>
             <Text style={styles.specItem}>• SKU: {product?.variants?.[0]?.variantId || 'N/A'}</Text>
@@ -86,32 +110,9 @@ const ProductDetails = () => {
             </Text>
           </View>
 
-          {/* 🔢 Quantity Selector */}
-          <View style={styles.quantityContainer}>
-            <TouchableOpacity style={styles.qtyBtn} onPress={decreaseQty}>
-              <FastImage
-                source={require('../../assets/minus.png')}
-                style={styles.iconSmall}
-                resizeMode={FastImage.resizeMode.contain}
-              />
-            </TouchableOpacity>
-
-            <Text style={styles.qtyText}>{quantity}</Text>
-
-            <TouchableOpacity style={styles.qtyBtn} onPress={increaseQty}>
-              <FastImage
-                source={require('../../assets/plus.png')}
-                style={styles.iconSmall}
-                resizeMode={FastImage.resizeMode.contain}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* 🛒 Add/Update Cart */}
           <TouchableOpacity
             style={[styles.cartBtn, { backgroundColor: inCart ? '#28a745' : '#007AFF' }]}
-            onPress={handleAddToCart}
-          >
+            onPress={handleAddToCart}>
             <FastImage
               source={
                 inCart
@@ -126,7 +127,6 @@ const ProductDetails = () => {
             </Text>
           </TouchableOpacity>
 
-          {/* 📤 Share Button */}
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
             <FastImage
               source={require('../../assets/share.png')}
@@ -138,7 +138,6 @@ const ProductDetails = () => {
         </View>
       </ScrollView>
 
-      {/* 🔙 Back Button */}
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
         <FastImage
           source={require('../../assets/back.jpg')}
@@ -154,58 +153,19 @@ export default ProductDetails;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  image: { width: width, height: width, backgroundColor: '#f0f0f0' },
+  image: { width, height: width, backgroundColor: '#f0f0f0' },
   infoContainer: { padding: 16 },
   name: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 8 },
   price: { fontSize: 18, fontWeight: '600', color: '#007AFF', marginBottom: 12 },
   description: { fontSize: 14, color: '#555', lineHeight: 20, marginBottom: 16 },
-  specs: {
-    backgroundColor: '#f9f9f9',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
+  specs: { backgroundColor: '#f9f9f9', padding: 10, borderRadius: 8, marginBottom: 20 },
   specTitle: { fontWeight: 'bold', marginBottom: 4, color: '#333' },
   specItem: { fontSize: 13, color: '#555', marginBottom: 2 },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  qtyBtn: {
-    backgroundColor: '#eee',
-    padding: 8,
-    borderRadius: 8,
-  },
-  qtyText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginHorizontal: 12,
-  },
-  cartBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
+  cartBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10 },
   cartBtnText: { color: '#fff', fontWeight: '600', marginLeft: 6 },
-  shareBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-  },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   shareText: { color: '#007AFF', marginLeft: 6, fontWeight: '600' },
-  backBtn: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    backgroundColor: '#00000080',
-    padding: 8,
-    borderRadius: 20,
-  },
+  backBtn: { position: 'absolute', top: 40, left: 20, backgroundColor: '#00000080', padding: 8, borderRadius: 20 },
   iconSmall: { width: 20, height: 20, tintColor: '#333' },
   iconMedium: { width: 22, height: 22, tintColor: '#fff', marginRight: 8 },
 });

@@ -1,101 +1,82 @@
-<<<<<<< HEAD
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+1) Project Overview
 
-# Getting Started
+A small e-commerce application built with React Native (CLI) and TypeScript implementing product listing, cart management, and barcode scanning. The app uses AsyncStorage for local persistence (cart + secure tokens) due to dependency conflicts with react-native-mmkv.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+This README documents: setup, features, how pagination works with the provided API, and how persistence is handled using AsyncStorage.
 
-## Step 1: Start Metro
+2) Tech Stack
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+React Native CLI (NOT Expo)
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+TypeScript
 
-```sh
-# Using npm
-npm start
+Zustand for state management (no Redux used)
 
-# OR using Yarn
-yarn start
-```
+@react-native-async-storage/async-storage for local persistence
 
-## Step 2: Build and run your app
+@react-native-google-signin/google-signin for Google OAuth
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+react-native-fast-image for lazy image loading
 
-### Android
+react-native-vision-camera v4 + Code Scanner plugin for barcode scanning
 
-```sh
-# Using npm
-npm run android
+react-native-keychain for secure token storage
 
-# OR using Yarn
-yarn android
-```
+Android (primary target for APK)
 
-### iOS
+3) Features Implemented
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+Authentication: Google Sign-In (OAuth 2.0) + secure token storage and logout
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+Products Listing: Grid (2 columns), optimized FlatList (getItemLayout, removeClippedSubviews, maxToRenderPerBatch), search with debounce, quick add/remove to cart and wishlist, infinite scroll (pagination), pull-to-refresh, floating cart button with badge, loading & error states
 
-```sh
-bundle install
-```
+Product Details: image carousel, product info, quantity selector, add/update cart, share product
 
-Then, and every time you update your native dependencies, run:
+Cart: item list, quantity controls, remove item, price breakdown, checkout button, empty state, cart persistence using AsyncStorage
 
-```sh
-bundle exec pod install
-```
+Barcode Scanner: real-time scanning via react-native-vision-camera + Code Scanner plugin (EAN-13, UPC-A, QR, Code-128), camera permissions, flashlight toggle, manual barcode entry, match barcode → product details
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+4) API (Provided)
+    Endpoint: https://catalog-management-system-dev-ak3ogf6zea-uc.a.run.app/cms/product/v2/filter/product
+    Request Body example (pagination):
+    {
+        "page": "1",
+        "pageSize": "10",
+        "sort": { "creationDateSortOption": "DESC" }
+    }
 
-```sh
-# Using npm
-npm run ios
+    Important notes:
+        Products are returned in data.data[].
+        variants[].barcodes[] contains barcode strings.
+        variants[].images may be null — use placeholders when null.
+        Implement pagination by changing the page parameter.
 
-# OR using Yarn
-yarn ios
-```
+6) Prerequisites
+    Node.js (16+ recommended)
+    Yarn or npm
+    Android Studio + Android SDK
+    Java JDK 11
+    React Native CLI environment (follow React Native official docs)
+    
+7) Setup & Run (Development)
+   git clone https://github.com/Arungowda2622/pallet.git
+   cd pallet
+   npm install --legacy-peer-deps
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+   Android build:
+    npx react-native run-android
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+8) Cart Persistence (AsyncStorage Implementation)
+   Because of a dependency conflict with react-native-mmkv, AsyncStorage was used instead for persistence.
 
-## Step 3: Modify your app
+9) Barcode Scanner Integration
+    Implemented using react-native-vision-camera v4.
+    Supports EAN-13, UPC-A, QR, and Code-128 formats.
+    Handles permissions, flashlight toggle, and manual entry.
 
-Now that you have successfully run the app, let's make changes!
+10) FlatList Optimization 
+    getItemLayout used for faster scroll performance
+    maxToRenderPerBatch and initialNumToRender tuned for performance
+    removeClippedSubviews enabled
+    Debounced search input prevents excessive API calls
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
-=======
-# pallet
->>>>>>> f91df676a5b9dde594cb595ff81fecf4203fd29c

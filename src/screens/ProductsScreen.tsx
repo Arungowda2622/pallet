@@ -10,8 +10,10 @@ import {
   TouchableOpacity,
   TextInput,
   RefreshControl,
+  Image,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { saveCart, loadCart } from '../utils/storage';
 
 const { width } = Dimensions.get('window');
@@ -24,6 +26,7 @@ interface Product {
   price?: number | string;
   description?: string;
   image?: string;
+  barcode?: string | null;
 }
 
 type CartItem = Product;
@@ -41,7 +44,6 @@ const ProductsScreen = ({ navigation }: any) => {
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
-  // 🔍 Debounced Search + Pagination
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       fetchData(page, searchQuery, page === 1);
@@ -50,7 +52,6 @@ const ProductsScreen = ({ navigation }: any) => {
   }, [page, searchQuery]);
 
   useEffect(() => {
-    // Load stored cart when screen mounts
     (async () => {
       const storedCart = await loadCart();
       if (storedCart) setCart(storedCart);
@@ -80,17 +81,29 @@ const ProductsScreen = ({ navigation }: any) => {
       );
 
       const apiData = response.data?.data;
+      console.log(apiData, "📦 full API data");
+
       const newProducts =
-        apiData?.data?.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price || 'N/A',
-          description: item.shortDescription || item.description || '',
-          image:
+        apiData?.data?.map((item: any) => {
+          const image =
             item.imageUrls?.[0] ||
             item.variants?.[0]?.images?.[0] ||
-            'https://via.placeholder.com/150',
-        })) || [];
+            'https://via.placeholder.com/150';
+
+          const barcode =
+            item.variants?.[0]?.barcodes?.[0] || // from variant
+            item.barcodes?.[0] ||                // sometimes direct field
+            null;
+
+          return {
+            id: item.id,
+            name: item.name,
+            price: item.price || 'N/A',
+            description: item.shortDescription || item.description || '',
+            image,
+            barcode, // 👈 add barcode for QR/Barcode scanning
+          };
+        }) || [];
 
       setTotalPages(apiData?.totalPages || 1);
       setProducts(prev => (reset ? newProducts : [...prev, ...newProducts]));
@@ -104,6 +117,7 @@ const ProductsScreen = ({ navigation }: any) => {
       setRefreshing(false);
     }
   };
+
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -119,16 +133,14 @@ const ProductsScreen = ({ navigation }: any) => {
 
   const toggleCart = async (item: Product) => {
     let updatedCart: Product[];
-
     const existingItem = cart.find(p => p.id === item.id);
     if (existingItem) {
       updatedCart = cart.filter(p => p.id !== item.id);
     } else {
       updatedCart = [...cart, { ...item, quantity: 1 }];
     }
-
     setCart(updatedCart);
-    await saveCart(updatedCart); // 👈 persist in AsyncStorage
+    await saveCart(updatedCart);
   };
 
   const toggleWishlist = (item: Product) => {
@@ -147,13 +159,13 @@ const ProductsScreen = ({ navigation }: any) => {
     ({ item }: { item: Product }) => {
       const inCart = cart.some(p => p.id === item.id);
       const inWishlist = wishlist.some(p => p.id === item.id);
-      console.log(item, "listItem");
       const imageUri =
         !item.image ||
           item.image === 'https://via.placeholder.com/150' ||
           item.image.trim() === ''
           ? null
           : item.image;
+
       return (
         <TouchableOpacity
           onPress={() => handleClick(item)}
@@ -171,7 +183,6 @@ const ProductsScreen = ({ navigation }: any) => {
           <Text style={styles.name} numberOfLines={2}>
             {item?.name || 'No Name'}
           </Text>
-          <Text style={styles.price}>₹{item?.price || 'N/A'}</Text>
           <View style={styles.actions}>
             <TouchableOpacity onPress={() => toggleCart(item)}>
               <FastImage
@@ -226,17 +237,24 @@ const ProductsScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* 🔍 Search */}
-      <TextInput
-        placeholder="Search products..."
-        value={searchQuery}
-        onChangeText={text => {
-          setProducts([]);
-          setPage(1);
-          setSearchQuery(text);
-        }}
-        style={styles.searchBox}
-      />
+      {/* 🔍 Search + QR Button */}
+      <View style={styles.searchRow}>
+        <TextInput
+          placeholder="Search products..."
+          value={searchQuery}
+          onChangeText={text => {
+            setProducts([]);
+            setPage(1);
+            setSearchQuery(text);
+          }}
+          style={styles.searchBox}
+        />
+        <TouchableOpacity
+          style={styles.qrButton}
+          onPress={() => navigation.navigate('BarcodeScanner')}>
+          <Image source={require('../../assets/qr-code-outline.png')} style={styles.qrCode} />
+        </TouchableOpacity>
+      </View>
 
       {/* 🧾 Product List */}
       <FlatList
@@ -256,15 +274,6 @@ const ProductsScreen = ({ navigation }: any) => {
             <ActivityIndicator size="small" color="#007AFF" style={{ margin: 10 }} />
           ) : null
         }
-        removeClippedSubviews={true}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={7}
-        getItemLayout={(_, index) => ({
-          length: ITEM_WIDTH + ITEM_MARGIN * 2,
-          offset: (ITEM_WIDTH + ITEM_MARGIN * 2) * index,
-          index,
-        })}
       />
 
       {/* 🛒 Floating Cart Button */}
@@ -311,11 +320,7 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 14, fontWeight: '600', marginTop: 6, color: '#333' },
   price: { fontSize: 13, color: '#007AFF', marginTop: 4 },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
+  actions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   iconImage: { width: 24, height: 24 },
   errorText: { color: '#d00', marginBottom: 10 },
   retryBtn: {
@@ -324,12 +329,25 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
+  searchRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 10 },
   searchBox: {
-    margin: 10,
+    flex: 1,
     padding: 10,
     borderRadius: 8,
     borderColor: '#ddd',
     borderWidth: 1,
+    backgroundColor: '#fff',
+  },
+  qrButton: {
+    marginLeft: 8,
+    backgroundColor: '#f1f1f1',
+    borderRadius: 8,
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qrCode: {
+    height: 20, width: 20, resizeMode: "stretch"
   },
   floatingCart: {
     position: 'absolute',
