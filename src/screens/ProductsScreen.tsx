@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet,
@@ -11,18 +12,18 @@ import {
   RefreshControl,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
+import { saveCart, loadCart } from '../utils/storage';
 
 const { width } = Dimensions.get('window');
 const ITEM_MARGIN = 8;
 const ITEM_WIDTH = (width - ITEM_MARGIN * 3) / 2;
 
-// Define product type (adjust fields based on your API)
 interface Product {
   id: string | number;
   name: string;
   price?: number | string;
   description?: string;
-  variants?: { images?: string[] | string }[];
+  image?: string;
 }
 
 type CartItem = Product;
@@ -38,103 +39,68 @@ const ProductsScreen = ({ navigation }: any) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
-  // 🕒 Debounce search
+  // 🔍 Debounced Search + Pagination
   useEffect(() => {
-    const delay = setTimeout(() => {
-      setPage(1);
-      fetchData(true);
+    const delayDebounce = setTimeout(() => {
+      fetchData(page, searchQuery, page === 1);
     }, 500);
-    return () => clearTimeout(delay);
-  }, [searchQuery]);
+    return () => clearTimeout(delayDebounce);
+  }, [page, searchQuery]);
 
   useEffect(() => {
-    fetchData();
-  }, [page]);
+    // Load stored cart when screen mounts
+    (async () => {
+      const storedCart = await loadCart();
+      if (storedCart) setCart(storedCart);
+    })();
+  }, []);
 
-  const fetchData = async (reset = false) => {
+  const fetchData = async (pageNum = 1, query = '', reset = false) => {
     try {
       if (reset) setLoading(true);
+      else setLoadingMore(true);
 
-      // Mock Data
-      const data = {
-        data: {
-          totalRecords: 3,
-          totalPages: 1,
-          data: [
-            {
-              id: '101',
-              name: 'Apple iPhone 15 Pro',
-              price: '1299',
-              description: 'Latest iPhone with A17 Pro chip and titanium body.',
-              variants: [
-                {
-                  images: [
-                    'https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/iphone-15-pro-finish-select-202309-6-1inch-blue-titanium',
-                    'https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/iphone-15-pro-gallery-2-202309',
-                  ],
-                   barcodes: "5555500000012",
-                },
-              ],
-            },
-            {
-              id: '102',
-              name: 'Samsung Galaxy S24 Ultra',
-              price: '1199',
-              description: 'Flagship Galaxy phone with AI-powered camera and S-Pen support.',
-              variants: [
-                {
-                  images: [
-                    'https://images.samsung.com/is/image/samsung/p6pim/levant/galaxy-s24-ultra-highlights-kv-mo-img',
-                    'https://images.samsung.com/is/image/samsung/p6pim/levant/galaxy-s24-ultra-design-1-img',
-                  ],
-                   barcodes: "5555500000012",
-                },
-              ],
-            },
-            {
-              id: '103',
-              name: 'Sony WH-1000XM5 Headphones',
-              price: '399',
-              description: 'Industry-leading noise cancellation wireless headphones.',
-              variants: [
-                {
-                  images: [
-                    'https://m.media-amazon.com/images/I/61+d5Fz6a4L._AC_SL1500_.jpg',
-                    'https://m.media-amazon.com/images/I/61vL3oJr8bL._AC_SL1500_.jpg',
-                  ],
-                  barcodes: "5555500000012",
-                },
-              ],
-            },
-            {
-              id: '104',
-              name: 'Sony  Headphones',
-              price: '599',
-              description: 'Industry-leading noise cancellation wireless headphones.',
-              variants: [
-                {
-                  images: [
-                    'https://m.media-amazon.com/images/I/61+d5Fz6a4L._AC_SL1500_.jpg',
-                    'https://m.media-amazon.com/images/I/61vL3oJr8bL._AC_SL1500_.jpg',
-                  ],
-                  barcodes: "5555500000012",
-                },
-              ],
-            },
-          ],
+      const response = await axios.post(
+        'https://catalog-management-system-dev-ak3ogf6zea-uc.a.run.app/cms/product/v2/filter/product',
+        {
+          page: pageNum.toString(),
+          pageSize: '10',
+          sort: { creationDateSortOption: 'DESC' },
+          searchText: query || undefined,
         },
-      };
+        {
+          headers: {
+            accept: 'application/json',
+            'Content-Type': 'application/json',
+            'x-internal-call': 'true',
+          },
+        }
+      );
 
-      const newProducts = data.data.data || [];
-      setTotalPages(data.data.totalPages || 1);
-      setProducts(reset ? newProducts : [...products, ...newProducts]);
+      const apiData = response.data?.data;
+      const newProducts =
+        apiData?.data?.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price || 'N/A',
+          description: item.shortDescription || item.description || '',
+          image:
+            item.imageUrls?.[0] ||
+            item.variants?.[0]?.images?.[0] ||
+            'https://via.placeholder.com/150',
+        })) || [];
+
+      setTotalPages(apiData?.totalPages || 1);
+      setProducts(prev => (reset ? newProducts : [...prev, ...newProducts]));
       setError(null);
-    } catch (err) {
-      console.error('Fetch error:', err);
+    } catch (err: any) {
+      console.error('❌ Error fetching products:', err.message);
       setError('Failed to load products.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
   };
@@ -142,21 +108,27 @@ const ProductsScreen = ({ navigation }: any) => {
   const handleRefresh = () => {
     setRefreshing(true);
     setPage(1);
-    fetchData(true);
+    fetchData(1, searchQuery, true);
   };
 
   const handleLoadMore = () => {
-    if (!loading && page < totalPages) {
+    if (!loading && !loadingMore && page < totalPages) {
       setPage(prev => prev + 1);
     }
   };
 
-  const toggleCart = (item: Product) => {
-    setCart(prev =>
-      prev.some(p => p.id === item.id)
-        ? prev.filter(p => p.id !== item.id)
-        : [...prev, item]
-    );
+  const toggleCart = async (item: Product) => {
+    let updatedCart: Product[];
+
+    const existingItem = cart.find(p => p.id === item.id);
+    if (existingItem) {
+      updatedCart = cart.filter(p => p.id !== item.id);
+    } else {
+      updatedCart = [...cart, { ...item, quantity: 1 }];
+    }
+
+    setCart(updatedCart);
+    await saveCart(updatedCart); // 👈 persist in AsyncStorage
   };
 
   const toggleWishlist = (item: Product) => {
@@ -175,12 +147,13 @@ const ProductsScreen = ({ navigation }: any) => {
     ({ item }: { item: Product }) => {
       const inCart = cart.some(p => p.id === item.id);
       const inWishlist = wishlist.some(p => p.id === item.id);
-
+      console.log(item, "listItem");
       const imageUri =
-        Array.isArray(item?.variants?.[0]?.images)
-          ? item.variants?.[0]?.images?.[0]
-          : item?.variants?.[0]?.images;
-
+        !item.image ||
+          item.image === 'https://via.placeholder.com/150' ||
+          item.image.trim() === ''
+          ? null
+          : item.image;
       return (
         <TouchableOpacity
           onPress={() => handleClick(item)}
@@ -188,15 +161,17 @@ const ProductsScreen = ({ navigation }: any) => {
           activeOpacity={0.8}>
           <FastImage
             style={styles.image}
-            source={require('../../assets/placeholderImage.png')}
+            source={
+              imageUri
+                ? { uri: imageUri, priority: FastImage.priority.normal }
+                : require('../../assets/placeholderImage.png')
+            }
             resizeMode={FastImage.resizeMode.cover}
           />
-
           <Text style={styles.name} numberOfLines={2}>
             {item?.name || 'No Name'}
           </Text>
           <Text style={styles.price}>₹{item?.price || 'N/A'}</Text>
-
           <View style={styles.actions}>
             <TouchableOpacity onPress={() => toggleCart(item)}>
               <FastImage
@@ -228,15 +203,6 @@ const ProductsScreen = ({ navigation }: any) => {
     [cart, wishlist]
   );
 
-  const getItemLayout = useCallback(
-    (_, index) => ({
-      length: ITEM_WIDTH + 100,
-      offset: (ITEM_WIDTH + 100) * index,
-      index,
-    }),
-    []
-  );
-
   if (loading && page === 1) {
     return (
       <View style={styles.loader}>
@@ -249,7 +215,9 @@ const ProductsScreen = ({ navigation }: any) => {
     return (
       <View style={styles.loader}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={() => fetchData(true)}>
+        <TouchableOpacity
+          style={styles.retryBtn}
+          onPress={() => fetchData(1, searchQuery, true)}>
           <Text style={{ color: '#fff' }}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -262,10 +230,15 @@ const ProductsScreen = ({ navigation }: any) => {
       <TextInput
         placeholder="Search products..."
         value={searchQuery}
-        onChangeText={setSearchQuery}
+        onChangeText={text => {
+          setProducts([]);
+          setPage(1);
+          setSearchQuery(text);
+        }}
         style={styles.searchBox}
       />
 
+      {/* 🧾 Product List */}
       <FlatList
         data={products}
         numColumns={2}
@@ -273,44 +246,42 @@ const ProductsScreen = ({ navigation }: any) => {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         columnWrapperStyle={{ justifyContent: 'space-between' }}
-        removeClippedSubviews
-        maxToRenderPerBatch={10}
-        initialNumToRender={6}
-        windowSize={10}
-        getItemLayout={getItemLayout}
-        showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
         ListFooterComponent={
-          loading && page > 1 ? (
+          loadingMore ? (
             <ActivityIndicator size="small" color="#007AFF" style={{ margin: 10 }} />
           ) : null
         }
-        ListEmptyComponent={
-          !loading && (
-            <Text style={styles.emptyText}>No products found</Text>
-          )
-        }
+        removeClippedSubviews={true}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        getItemLayout={(_, index) => ({
+          length: ITEM_WIDTH + ITEM_MARGIN * 2,
+          offset: (ITEM_WIDTH + ITEM_MARGIN * 2) * index,
+          index,
+        })}
       />
 
       {/* 🛒 Floating Cart Button */}
-      {cart.length > 0 && (
-        <TouchableOpacity
-          style={styles.cartButton}
-          onPress={() => navigation.navigate("CartScreen",{ cart })}>
-          <FastImage
-            source={require('../../assets/cart-filled.jpeg')}
-            style={styles.cartIcon}
-            resizeMode={FastImage.resizeMode.contain}
-          />
+      <TouchableOpacity
+        style={styles.floatingCart}
+        onPress={() => navigation.navigate('CartScreen', { cart })}>
+        <FastImage
+          source={require('../../assets/top-cart.png')}
+          style={styles.floatingCartIcon}
+          resizeMode={FastImage.resizeMode.contain}
+        />
+        {cart.length > 0 && (
           <View style={styles.cartBadge}>
             <Text style={styles.cartBadgeText}>{cart.length}</Text>
           </View>
-        </TouchableOpacity>
-      )}
+        )}
+      </TouchableOpacity>
     </View>
   );
 };
@@ -340,7 +311,19 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 14, fontWeight: '600', marginTop: 6, color: '#333' },
   price: { fontSize: 13, color: '#007AFF', marginTop: 4 },
-  emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#777' },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  iconImage: { width: 24, height: 24 },
+  errorText: { color: '#d00', marginBottom: 10 },
+  retryBtn: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
   searchBox: {
     margin: 10,
     padding: 10,
@@ -348,20 +331,19 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderWidth: 1,
   },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  cartButton: {
+  floatingCart: {
     position: 'absolute',
-    bottom: 60,
+    bottom: 25,
     right: 20,
     backgroundColor: '#007AFF',
-    padding: 14,
-    borderRadius: 30,
-    elevation: 5,
+    borderRadius: 50,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
   },
+  floatingCartIcon: { width: 28, height: 28, tintColor: '#fff' },
   cartBadge: {
     position: 'absolute',
     top: 4,
@@ -374,13 +356,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartBadgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  errorText: { color: '#d00', marginBottom: 10 },
-  retryBtn: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  iconImage: { width: 24, height: 24 },
-  cartIcon: { width: 28, height: 28, tintColor: '#fff' },
 });
