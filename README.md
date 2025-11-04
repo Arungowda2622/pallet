@@ -82,3 +82,11 @@ Barcode Scanner: real-time scanning via react-native-vision-camera + Code Scanne
 
 11) Download APK 
     https://github.com/Arungowda2622/pallet/blame/main/apk/app-release.apk
+
+12) Screenshots 
+    Login Screen -> assests/Login_Page_Screen_shot.jpg
+    Products List -> assests/Home_Screen_Shoot.jpg
+    Products List Pagination Loader -> assests/Pagination_Loader_Screen_Shoot.jpg
+    Bar Code 
+     Scan -> assests/Scan_BarCode_ScreenShoot.jpg
+     Manual -> assests/Manual_BarCode_Screen_Sgoot.jpg
