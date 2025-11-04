@@ -80,3 +80,5 @@ Barcode Scanner: real-time scanning via react-native-vision-camera + Code Scanne
     removeClippedSubviews enabled
     Debounced search input prevents excessive API calls
 
+11) Download APK 
+    https://github.com/Arungowda2622/pallet/blame/main/apk/app-release.apk
